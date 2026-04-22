@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: monospace; }
+        .launcher {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 350px; width: 500px; background: #070906; border: 2px solid #39FF14;
+            border-radius: 4px; position: relative; box-shadow: 0 0 30px rgba(57, 255, 20, 0.1);
+        }
+        .launcher::before { content: "[ SYSTEM BOOT ]"; position: absolute; top: 10px; left: 10px; color: #39FF14; font-size: 12px; }
+        .btn-main {
+            background: rgba(57, 255, 20, 0.1); color: #39FF14; border: 1px solid #39FF14; padding: 25px 60px;
+            font-family: monospace; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 5px; font-weight: 900; transition: 0.2s; box-shadow: inset 0 0 10px rgba(57,255,20,0.2);
+        }
+        .btn-main:hover { background: #39FF14; color: #000; box-shadow: 0 0 20px #39FF14; }
+    </style>
+</head>
+<body>
+    <div class="launcher">
+        <button class="btn-main" onclick="openStudio()">INITIALIZE DB-CONSOLE v45 [MIRROR-CLEAN]</button>
+    </div>
+
+<script>
+function openStudio() {
+    const win = window.open("", "DB_Studio_v45", "width=1450,height=950");
+    const code = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DB MASTER CONSOLE v45 | MIRROR-CLEAN AI</title>
+    <style>
+        :root {
+            --hud: #39FF14; --alert: #FF003C; --warn: #FFB300; --bg: #070906;
+            --panel: rgba(15, 20, 14, 0.9); --border: #22331d; --border-hl: #446633;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            color: var(--hud); font-family: 'Courier New', Courier, monospace;
+            margin: 0; padding: 15px; height: 100vh; display: flex; flex-direction: row;
+            overflow: hidden; box-sizing: border-box; text-transform: uppercase; gap: 15px;
+        }
+
+        body.is-recording { background-color: #1a0505; }
+        .hud-box { position: relative; border: 1px solid var(--border); background: var(--panel); border-radius: 2px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .main-stack { flex: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; }
+        .top-row { display: flex; gap: 15px; height: 300px; }
+        .wave-display { flex: 2; background: #000; border: 1px solid var(--border-hl); }
+        #wave-canvas { width: 100%; height: 100%; }
+
+        .slate { flex: 1; background: #000; border: 2px solid var(--border-hl); display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.3s; }
+        .tc-main { font-size: 55px; font-weight: 900; color: var(--warn); text-shadow: 0 0 10px rgba(255, 179, 0, 0.4); }
+        .rec-dot { width: 15px; height: 15px; background: var(--alert); border-radius: 50%; display: none; margin-bottom: 10px; box-shadow: 0 0 10px var(--alert); }
+        body.is-recording .rec-dot { display: block; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+
+        .log-section { flex: 1; overflow-y: auto; background: #000; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #111; color: var(--hud); padding: 10px; text-align: left; position: sticky; top: 0; border-bottom: 1px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); }
+
+        .timeline-box { height: 120px; background: #000; border: 1px solid var(--border-hl); position: relative; }
+        #timeline-canvas { width: 100%; height: 100%; }
+        .timeline-alert { position: absolute; top: 5px; right: 10px; color: var(--alert); font-weight: 900; display: none; animation: blink 0.5s infinite; }
+        body.is-recording .timeline-alert { display: block; }
+
+        .control-tower { width: 340px; display: flex; flex-direction: column; gap: 12px; padding: 15px; border-left: 2px solid var(--border-hl); background: rgba(5,10,5,0.8); }
+        .tower-label { font-size: 10px; color: var(--warn); border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+        .v-slider-stack { display: flex; justify-content: space-around; height: 200px; background: #000; padding: 10px 0; border: 1px solid #222; }
+        .v-slider-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .v-slider-group label { font-size: 8px; writing-mode: vertical-rl; transform: rotate(180deg); color: #779966; }
+        input[type=range].vertical { -webkit-appearance: slider-vertical; width: 10px; height: 140px; background: #111; }
+
+        .meter-block { height: 200px; display: flex; flex-direction: column; gap: 5px; }
+        .db-header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; text-align: center; font-size: 9px; }
+        .db-val { background: #000; border: 1px solid #333; padding: 2px 0; color: var(--hud); }
+        .meter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; background: #050505; padding: 5px; border: 1px solid #222; }
+        .v-track { background: #111; position: relative; }
+        .v-fill { position: absolute; bottom: 0; width: 100%; height: 0%; background: linear-gradient(180deg, var(--alert) 0%, var(--warn) 20%, var(--hud) 100%); }
+
+        .btn-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .btn-tactical { padding: 14px; font-weight: 900; font-family: monospace; cursor: pointer; border: 1px solid var(--border-hl); text-align: center; }
+        .btn-rec { background: rgba(255,0,0,0.1); color: var(--alert); border-color: var(--alert); }
+        .btn-rec.active { background: var(--alert); color: #000; }
+        
+        .btn-auto { color: #00A2FF; border-color: #00A2FF; background: transparent; font-size: 11px; }
+        .btn-auto.active { background: #00A2FF; color: #000; animation: ai-pulse 0.5s infinite; }
+        @keyframes ai-pulse { 0%, 100% { box-shadow: 0 0 5px #00A2FF; } 50% { box-shadow: 0 0 25px #00A2FF; } }
+
+        .footer-tools { display: flex; gap: 15px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
+        audio { flex: 1; height: 35px; filter: invert(1) hue-rotate(90deg); }
+        .crt-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 100; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); background-size: 100% 2px, 3px 100%; }
+    </style>
+</head>
+<body>
+    <div class="crt-overlay"></div>
+    <div class="main-stack">
+        <div class="top-row">
+            <div class="wave-display hud-box"><canvas id="wave-canvas"></canvas></div>
+            <div class="slate hud-box" onclick="toggle()">
+                <div class="rec-dot"></div>
+                <div class="tc-main" id="tc-hms">00:00:00</div>
+                <div style="color:var(--hud); font-size:10px; margin-top:10px;">SEQ_TAKE: <span id="take-label" style="color:var(--warn)">01</span></div>
+            </div>
+        </div>
+        <div class="log-section hud-box">
+            <table>
+                <thead><tr><th>SIG_TAG</th><th>DURATION</th><th>INTEL_STATUS</th><th>NOTES</th><th>SAVE</th></tr></thead>
+                <tbody id="logBody"></tbody>
+            </table>
+        </div>
+        <div class="timeline-box hud-box">
+            <div class="timeline-alert">[ LIVE TRANSMISSION ]</div>
+            <canvas id="timeline-canvas"></canvas>
+        </div>
+        <div class="footer-tools">
+            <audio id="player" controls></audio>
+            <button class="btn-tactical" id="saveBtn" disabled onclick="saveLastFile()">[ EXPORT_INTEL ]</button>
+        </div>
+    </div>
+
+    <div class="control-tower hud-box">
+        <div class="tower-label">[ SIGNAL INTEGRITY MODIFIERS ]</div>
+        <div class="v-slider-stack">
+            <div class="v-slider-group">
+                <label>MIC_INPUT</label>
+                <input type="range" id="sl-gain" class="vertical" min="0" max="3" step="0.01" value="1">
+            </div>
+            <div class="v-slider-group">
+                <label>PITCH_WARP</label>
+                <input type="range" id="sl-pitch" class="vertical" min="0.5" max="2" step="0.01" value="1">
+            </div>
+            <div class="v-slider-group">
+                <label>LP_FREQ</label>
+                <input type="range" id="sl-lpf" class="vertical" min="500" max="22000" value="22000">
+            </div>
+            <div class="v-slider-group">
+                <label>HP_FREQ</label>
+                <input type="range" id="sl-hpf" class="vertical" min="10" max="2000" value="10">
+            </div>
+        </div>
+        <div class="tower-label" style="margin-top:10px;">[ DB_MONITOR ]</div>
+        <div class="meter-block">
+            <div class="db-header">
+                <div class="db-val" id="db0">-0</div><div class="db-val" id="db1">-0</div>
+                <div class="db-val" id="db2">-0</div><div class="db-val" id="db3">-0</div>
+            </div>
+            <div class="meter-grid">
+                <div class="v-track"><div id="m0" class="v-fill"></div></div>
+                <div class="v-track"><div id="m1" class="v-fill"></div></div>
+                <div class="v-track"><div id="m2" class="v-fill"></div></div>
+                <div class="v-track"><div id="m3" class="v-fill"></div></div>
+            </div>
+        </div>
+        <div class="btn-stack">
+            <button class="btn-tactical btn-auto" id="autoBtn" onclick="toggleAutoGain()">[ MIRROR-CLEAN AI: OFF ]</button>
+            <div class="btn-tactical btn-rec" id="recBtn" onclick="toggle()">[ START RECORDING ]</div>
+            <div class="btn-tactical" style="background:#111; color:#fff;" onclick="returnAllControls()">[ RTC: RESET_SIGNAL ]</div>
+            <div class="btn-tactical btn-mon" id="monBtn" onclick="toggleMonitor()">[ MO: MONITOR OFF ]</div>
+        </div>
+        <div style="margin-top:10px;"><input type="range" id="sl-noise" min="0" max="0.5" step="0.01" value="0" style="width:100%"></div>
+    </div>
+
+    <script>
+        let ac, src, rec, chunks = [], take = 1, active = false, startTime;
+        let history = [], an = [], data = [], inputGain, noiseGain, pitchShifter, lpFilter, hpFilter, monitorGain;
+        let isMonitoring = false, autoGainActive = false;
+        let waveCanvas, waveCtx, timelineCanvas, timelineCtx;
+
+        const TARGET_VAL = 143; // -5dB Reference
+        let currentTargetGain = 1.0;
+
+        async function init() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                src = ac.createMediaStreamSource(stream);
+                inputGain = ac.createGain(); pitchShifter = ac.createDelay();
+                noiseGain = ac.createGain(); noiseGain.gain.value = 0;
+                const nBuf = ac.createBuffer(1, ac.sampleRate*2, ac.sampleRate);
+                const nD = nBuf.getChannelData(0); for(let i=0; i<nD.length; i++) nD[i] = Math.random()*2-1;
+                const nSrc = ac.createBufferSource(); nSrc.buffer = nBuf; nSrc.loop = true; nSrc.connect(noiseGain); nSrc.start();
+                lpFilter = ac.createBiquadFilter(); lpFilter.type="lowpass";
+                hpFilter = ac.createBiquadFilter(); hpFilter.type="highpass";
+                monitorGain = ac.createGain(); monitorGain.gain.value = 0;
+                src.connect(inputGain); inputGain.connect(hpFilter); noiseGain.connect(hpFilter);
+                hpFilter.connect(lpFilter); lpFilter.connect(pitchShifter);
+                pitchShifter.connect(monitorGain); monitorGain.connect(ac.destination);
+                const dest = ac.createMediaStreamDestination(); pitchShifter.connect(dest);
+                rec = new MediaRecorder(dest.stream); rec.ondataavailable = e => chunks.push(e.data); rec.onstop = finalizeTake;
+                for(let i=0; i<4; i++) { an[i] = ac.createAnalyser(); an[i].fftSize = 256; data[i] = new Uint8Array(an[i].frequencyBinCount); }
+                pitchShifter.connect(an[3]); lpFilter.connect(an[0]);
+                waveCanvas = document.getElementById('wave-canvas'); waveCtx = waveCanvas.getContext('2d');
+                timelineCanvas = document.getElementById('timeline-canvas'); timelineCtx = timelineCanvas.getContext('2d');
+                loop();
+            } catch(e) { console.error(e); }
+        }
+
+        window.toggleAutoGain = () => {
+            autoGainActive = !autoGainActive;
+            const btn = document.getElementById('autoBtn');
+            btn.innerText = autoGainActive ? "[ MIRROR-CLEAN AI: ENGAGED ]" : "[ MIRROR-CLEAN AI: OFF ]";
+            btn.classList.toggle('active', autoGainActive);
+            if(autoGainActive) {
+                currentTargetGain = 1.2;
+                inputGain.gain.linearRampToValueAtTime(1.2, ac.currentTime + 0.1);
+            }
+        };
+
+        // --- MIRROR-CLEAN AI ENGINE ---
+        function runNanoAI(val) {
+            if(!autoGainActive) return;
+            
+            // Logic targeting -5dB (143)
+            if(val < (TARGET_VAL - 8)) {
+                currentTargetGain += 0.01; // Clean boost
+            } 
+            else if (val > (TARGET_VAL + 8)) {
+                currentTargetGain -= 0.02; // Smooth reduction
+            }
+
+            currentTargetGain = Math.max(0.1, Math.min(3, currentTargetGain));
+            
+            // HIGH-FIDELITY INTERPOLATION
+            // linearRampToValueAtTime removes the "blurry/distorted" stepping noise
+            inputGain.gain.linearRampToValueAtTime(currentTargetGain, ac.currentTime + 0.03);
+            
+            // Sync UI slider without creating feedback loops
+            document.getElementById('sl-gain').value = inputGain.gain.value;
+        }
+
+        window.returnAllControls = () => {
+            inputGain.gain.cancelScheduledValues(ac.currentTime);
+            inputGain.gain.value = 1; document.getElementById('sl-gain').value = 1;
+            hpFilter.frequency.value = 10; document.getElementById('sl-hpf').value = 10;
+            lpFilter.frequency.value = 22000; document.getElementById('sl-lpf').value = 22000;
+            pitchShifter.delayTime.value = 0; document.getElementById('sl-pitch').value = 1;
+            noiseGain.gain.value = 0; document.getElementById('sl-noise').value = 0;
+            if(autoGainActive) toggleAutoGain();
+        };
+
+        document.getElementById('sl-gain').oninput = e => { 
+            if(!autoGainActive) {
+                inputGain.gain.cancelScheduledValues(ac.currentTime);
+                inputGain.gain.value = e.target.value; 
+            }
+        };
+        document.getElementById('sl-pitch').oninput = e => pitchShifter.delayTime.value = (e.target.value - 1) * 0.05;
+        document.getElementById('sl-lpf').oninput = e => lpFilter.frequency.value = e.target.value;
+        document.getElementById('sl-hpf').oninput = e => hpFilter.frequency.value = e.target.value;
+        document.getElementById('sl-noise').oninput = e => noiseGain.gain.value = e.target.value;
+
+        window.toggleMonitor = () => { isMonitoring = !isMonitoring; monitorGain.gain.value = isMonitoring ? 1 : 0; document.getElementById('monBtn').innerText = isMonitoring ? "[ MA: MONITOR ACTIVE ]" : "[ MO: MONITOR OFF ]"; };
+        window.toggle = () => { if(!ac) return; active = !active; const btn = document.getElementById('recBtn'); if(active) { chunks = []; startTime = Date.now(); rec.start(); btn.innerText = "[ STOP RECORDING ]"; btn.classList.add('active'); document.body.classList.add('is-recording'); } else { rec.stop(); btn.innerText = "[ START RECORDING ]"; btn.classList.remove('active'); document.body.classList.remove('is-recording'); } };
+
+        function finalizeTake() {
+            const dur = ((Date.now() - startTime)/1000).toFixed(1) + "s";
+            const url = URL.createObjectURL(new Blob(chunks, {type:'audio/wav'}));
+            const row = document.createElement('tr');
+            row.innerHTML = \`<td>RECON_\${take}</td><td>\${dur}</td><td><span style="color:#00A2FF">MIRROR_CLEAN</span></td><td><input type="text" style="background:transparent;border:none;color:#fff;width:100%"></td><td><button onclick="window.open('\${url}')">SAVE</button></td>\`;
+            document.getElementById('logBody').prepend(row); document.getElementById('player').src = url; document.getElementById('saveBtn').disabled = false;
+            take++; document.getElementById('take-label').innerText = take.toString().padStart(2,'0');
+        }
+
+        function loop() {
+            for(let i=0; i<4; i++) {
+                an[i].getByteFrequencyData(data[i]);
+                let sum = 0; for(let j=0; j<5; j++) sum += data[i][j];
+                let val = sum/5;
+                document.getElementById('m'+i).style.height = (val/2.5) + "%";
+                let db = val > 0 ? (20 * Math.log10(val/255)).toFixed(1) : -Infinity;
+                document.getElementById('db'+i).innerText = (db === -Infinity ? "-∞" : db) + " dB";
+                if(i===3) { 
+                    history.push({v: val, isRec: active}); if(history.length > 500) history.shift(); 
+                    runNanoAI(val);
+                }
+            }
+            const w = waveCanvas.width = waveCanvas.clientWidth, h = waveCanvas.height = waveCanvas.clientHeight;
+            if(w>0) {
+                const tD = new Uint8Array(an[3].frequencyBinCount); an[3].getByteTimeDomainData(tD);
+                waveCtx.clearRect(0,0,w,h); waveCtx.strokeStyle = active ? "#FF003C" : "#39FF14"; waveCtx.lineWidth = 2; waveCtx.beginPath();
+                for(let i=0; i<w; i++) { const v = tD[Math.floor(i * (tD.length/w))] / 128.0; const y = v * h / 2; if(i===0) waveCtx.moveTo(i,y); else waveCtx.lineTo(i,y); } waveCtx.stroke();
+            }
+            const tw = timelineCanvas.width = timelineCanvas.clientWidth, th = timelineCanvas.height = timelineCanvas.clientHeight;
+            if(tw>0) {
+                timelineCtx.clearRect(0,0,tw,th);
+                history.forEach((d, i) => {
+                    const x = i * (tw/500), y = th - (d.v/255)*th;
+                    if(d.isRec) { timelineCtx.fillStyle = "rgba(255, 0, 60, 0.1)"; timelineCtx.fillRect(x, 0, tw/500+1, th); }
+                    timelineCtx.strokeStyle = d.isRec ? "#FF003C" : "#39FF14"; timelineCtx.beginPath();
+                    if(i===0) timelineCtx.moveTo(x, y); else { timelineCtx.moveTo((i-1)*(tw/500), th - (history[i-1].v/255)*th); timelineCtx.lineTo(x, y); }
+                    timelineCtx.stroke();
+                });
+            }
+            document.getElementById('tc-hms').innerText = new Date().toTimeString().split(' ')[0];
+            requestAnimationFrame(loop);
+        }
+        init();
+    <\/script>
+</body>
+</html>
+    `;
+    win.document.write(code);
+    win.document.close();
+}
+</script>
+</body>
+</html>
